@@ -1,0 +1,24 @@
+# base:
+#   css:
+#     theme:
+#       main.css: {}
+#   js:
+#     main.js: {}
+
+usagov_wizards.react_wizard_select:
+  css:
+    # base -> layout -> component -> state -> theme
+    theme:
+      css/reactWizardSelect.css: {}
+  js:
+    js/reactWizardSelect.js: {}
+  # dependencies:
+  #   - core/jquery
+  #   - wizards/base
+
+usagov_wizards.react_wizard_viewer:
+  css:
+    theme:
+      js/dist/style.css: {}
+  js:
+    js/dist/wizard-cms.js: {}

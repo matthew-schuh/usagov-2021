@@ -1,0 +1,40 @@
+usagov_wizards.admin_settings:
+  path: '/admin/config/wizards'
+  defaults:
+    _form: '\Drupal\usagov_wizards\Form\WizardsSettingsForm'
+    _title: 'Wizards Configuration'
+  requirements:
+    _permission: 'administer wizards configuration'
+
+usagov_wizards.wizards:
+  path: '/wizards'
+  defaults:
+    _title: 'Select a Wizard'
+    _controller: '\Drupal\usagov_wizards\Controller\WizardController::wizardSelectPage'
+  requirements:
+    _role: administrator
+  options:
+    no_cache: 'TRUE'
+
+usagov_wizards.wizards.wizard:
+  path: '/wizards/{wizardId}'
+  defaults:
+    _title_callback: '\Drupal\usagov_wizards\Controller\WizardController::wizardPageTitle'
+    _controller: '\Drupal\usagov_wizards\Controller\WizardController::wizardPage'
+  requirements:
+    _role: administrator
+  options:
+    # parameters:
+    #   wizard:
+    #     type: string #entity:node
+    no_cache: 'TRUE'
+
+usagov_wizards.wizard_tree.update.v1:
+  path: '/wizards/api/v1/wizard-tree/update'
+  defaults:
+    _title: 'Update Wizard Tree Content'
+    _controller: '\Drupal\usagov_wizards\Controller\WizardTreeApi::updateWizardTree'
+  requirements:
+    _custom_access: '\Drupal\usagov_wizards\Controller\WizardTreeApi::updateWizardTreeAccess'
+  options:
+    no_cache: 'TRUE'
