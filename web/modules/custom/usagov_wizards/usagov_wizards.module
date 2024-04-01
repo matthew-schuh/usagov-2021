@@ -200,33 +200,58 @@ function loadOrCreateNodeType( string $bundle, string|null $filePath = null ) : 
   return $contentType;
 }
 
-function usagov_wizards_install($is_syncing) {
+/**
+ * Determines whether necessary content types and fields exist, and creates them
+ * if they don't. Additionally assigns fields to content types as needed.
+ * 
+ * Note this uses the content types with machine names "wizard" and "wizard_step"
+ */
+function prepareContentTypesAndFields() {
+  $nodeTypes = ['wizard', 'wizard_step'];
   $entityTypeManager = \Drupal::entityTypeManager();
   // First, make sure content types exist. They are Wizard (wizard)
   // and Wizard Step (wizard_step)
-  $wizardContentType = loadOrCreateNodeType('wizard');
-  $wizardStepContentType = loadOrCreateNodeType('wizard_step');
-
-
   // Then, add required fields. These fields should already exist in the CMS.
   // If they don't, create them first, then add them.
   $fieldsToAdd = [
-    'field_page_intro',
-    'field_hide_page_intro',
-    'field_meta_description',
-    'field_short_description',
-    'field_page_type',
-    'field_language_toggle',
-    'body',
-    'field_header_html',
-    'field_css_icon',
-    'field_footer_html',
-    'field_for_contact_center_only',
-    'field_faq_page',
-    'field_custom_twig_content',
-    'field_exclude_from_contact_cente',
-    'field_wizard_step'
+    '#shared' => [
+      'field_page_intro',
+      'field_hide_page_intro',
+      'field_meta_description',
+      'field_short_description',
+      'field_page_type',
+      'field_language_toggle',
+      'body',
+      'field_header_html',
+      'field_css_icon',
+      'field_footer_html',
+      'field_for_contact_center_only',
+      'field_faq_page',
+      'field_custom_twig_content',
+      'field_exclude_from_contact_cente',
+      'field_wizard_step'
+    ],
+    'wizard' => [],
+    'wizard_step' => []
   ];
+  foreach ( $nodeTypes as $nodeType ) {
+    // Creates the node (content) type if it doesn't exist.
+    loadOrCreateNodeType($nodeType);
+
+    // #shared is an array containing machine names of all fields
+    // shared by all content types created here (i.e. wizard and wizard_step)
+    foreach ( $fieldsToAdd['#shared'] as $fieldToAdd ) {
+      loadOrCreateFieldConfig($fieldToAdd, $nodeType);
+    }
+    // Additionally, add support for non-shared fields.
+    if ( isset($fieldsToAdd[$nodeType]) ) {
+      foreach ( $fieldsToAdd[$nodeType] as $fieldToAdd ) {
+        loadOrCreateFieldConfig($fieldToAdd, $nodeType);
+      }
+    }
+  }
+
+
   // Title                          (title) - default drupal field
   // Revision log message           Not a field - default drupal input
   // Menu settings                  Not a field - default drupal group
@@ -261,10 +286,10 @@ function usagov_wizards_install($is_syncing) {
   // Parent Item                    () TODO
   // Weight                         () TODO
   // TODO unknown fields (not already in CMS?)
-  $fieldConfigs = [];
-  foreach ( $fieldsToAdd as $fieldBundle ) {
-    $fieldConfigs[$fieldBundle] = loadOrCreateFieldConfig($fieldBundle);
-  }
+}
+
+function usagov_wizards_install($is_syncing) {
+  prepareContentTypesAndFields();
 }
 
 function usagov_wizards_theme($existing, $type, $theme, $path) {
