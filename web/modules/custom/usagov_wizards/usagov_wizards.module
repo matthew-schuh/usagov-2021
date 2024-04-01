@@ -1,5 +1,272 @@
 <?php
 
+use \Drupal\node\Entity\NodeType;
+use \Drupal\field\Entity\FieldConfig;
+use \Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Loads a field configuration if it exists in Drupal. Otherwise creates it from a YAML file.
+ * 
+ * @param string $fieldName
+ *   The machine name of the field.
+ * @param string $nodeTypeBundle
+ *   The bundle (machine name) of the node type.
+ * @param string|null $filePath
+ *   The path of the YAML file. If null or no file exists at that location,
+ *   it will try to load the file using the field name instead.
+ * 
+ * @return FieldConfig|null
+ *   Returns the FieldConfig for that field name and node type. null if unable to load or create.
+ */
+function loadOrCreateFieldConfig( string $fieldName, string $nodeTypeBundle, string|null $filePath = null ) : FieldConfig|null {
+  $fieldConfig = FieldConfig::loadByName('node', $nodeTypeBundle, $fieldName);
+
+  // If the field doesn't exist in the content type, add it in.
+  if ( empty($fieldConfig) ) {
+    // Attempt to load the field storage config for the field.
+    $fieldStorage = loadOrCreateFieldStorageConfig($fieldName);
+
+    if ( !empty($fieldStorage) ) {
+      // With a valid field storage, add the field to the node type.
+      $fieldConfigKeys = [
+        'id',
+        'field_name',
+        'entity_type',
+        'bundle',
+        'label',
+        'description',
+        'required',
+        'translatable',
+        'default_value',
+        'default_value_callback',
+        'settings',
+        'field_type'
+      ];
+
+      $fileContents = null;
+      if ( !empty($filePath) ) {
+        $fileContents = file_get_contents($filePath);
+      }
+      if ( empty($fileContents) ) {
+        // Failed to load or no filepath provided
+        $fileContents = file_get_contents("config_files/field_config/field.field.$nodeTypeBundle.$fieldName.yml");
+      }
+
+      if ( !empty($fileContents) ) {
+        try {
+          // Attempt to create the field storage config with loaded data, and return it if successful.
+          $fieldConfigData = \Drupal\Component\Serialization\Yaml::decode($fileContents);
+          // TODO
+          $fieldConfig = FieldConfig::create(array_intersect_key($contentTypeData, array_flip($nodeTypeKeys)));
+          $saveSuccessful = $fieldConfig->save();
+
+          if ( $saveSuccessful ) {
+            return $fieldConfig;
+          }
+          return null;
+        } catch ( Exception $e ) {
+          error_log("Failed to create new field config $fieldName:    {$e->getMessage()}");
+          return null;
+        }
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  return $fieldConfig;
+}
+
+/**
+ * Loads a field storage configuration if it exists in Drupal. Otherwise creates it from a YAML file.
+ * 
+ * @param string $fieldName
+ *   The machine name of the field.
+ * @param string|null $filePath
+ *   The path of the YAML file. If null or no file exists at that location,
+ *   it will try to load the file using the field name instead.
+ * 
+ * @return FieldStorageConfig|null
+ *   The FieldStorageConfig for that field name. null if unable to load or create.
+ */
+function loadOrCreateFieldStorageConfig( string $fieldName, string|null $filePath) : FieldStorageConfig|null {
+  $fieldStorageConfig = FieldStorageConfig::loadByName('node', $fieldName);
+
+  if ( empty($fieldStorageConfig) ) {
+    // TODO
+    $fieldStorageKeys = [
+      'id',
+      'field_name',
+      'entity_type',
+      'type',
+      'settings',
+      'module',
+      'locked',
+      'cardinality',
+      'translatable',
+      'indexes',
+      'persist_with_no_fields',
+      'custom_storage'
+    ];
+
+    $fileContents = null;
+    if ( !empty($filePath) ) {
+      $fileContents = file_get_contents($filePath);
+    }
+    if ( empty($fileContents) ) {
+      // Failed to load or no filepath provided
+      $fileContents = file_get_contents("config_files/field_storage_config/$fieldName.yml");
+    }
+
+    if ( !empty($fileContents) ) {
+      try {
+        // Attempt to create the field storage config with loaded data, and return it if successful.
+        $fieldStorageData = \Drupal\Component\Serialization\Yaml::decode($fileContents);
+        $fieldStorageConfig = FieldStorageConfig::create(array_intersect_key($contentTypeData, array_flip($nodeTypeKeys)));
+        $saveSuccessful = $fieldStorageConfig->save();
+
+        if ( $saveSuccessful ) {
+          return $fieldStorageConfig;
+        }
+        return null;
+      } catch ( Exception $e ) {
+        error_log("Failed to create new field storage config $fieldName:    {$e->getMessage()}");
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  return $fieldStorageConfig;
+}
+
+/**
+ * Loads a content type if it exists in Drupal. Otherwise creates it from a yaml file.
+ * 
+ * @param string $bundle
+ *   The bundle (machine name) of the content type.
+ * @param string|null $filePath
+ *   The path of the YAML file. If null or no file exists at that location,
+ *   it will try to load the file using the bundle instead.
+ * 
+ * @return NodeType|null
+ *   Returns the NodeType for that bundle. null if unable to load or create.
+ */
+function loadOrCreateNodeType( string $bundle, string|null $filePath = null ) : NodeType|null {
+  $contentType = NodeType::load($bundle);
+
+  if ( empty($contentType) ) {
+    $nodeTypeKeys = [
+      'name',
+      'type',
+      'description',
+      'help',
+      'new_revision',
+      'preview_mode',
+      'display_submitted'
+    ];
+
+    $fileContents = null;
+    if ( !empty($filePath) ) {
+      $fileContents = file_get_contents($filePath);
+    }
+    if ( empty($fileContents) ) {
+      // Failed to load or no filepath provided
+      $fileContents = file_get_contents("config_files/node_type/$bundle.yml");
+    }
+    if ( !empty($fileContents) ) {
+      try {
+        // Attempt to create the content type with loaded data, and return it if successful.
+        $contentTypeData = \Drupal\Component\Serialization\Yaml::decode($fileContents);
+        $contentType = NodeType::create(array_intersect_key($contentTypeData, array_flip($nodeTypeKeys)));
+        $saveSuccessful = $contentType->save();
+
+        if ( $saveSuccessful ) {
+          return $contentType;
+        }
+        return null;
+      } catch ( Exception $e ) {
+        error_log("Failed to create new content type $bundle:    {$e->getMessage()}");
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  return $contentType;
+}
+
+function usagov_wizards_install($is_syncing) {
+  $entityTypeManager = \Drupal::entityTypeManager();
+  // First, make sure content types exist. They are Wizard (wizard)
+  // and Wizard Step (wizard_step)
+  $wizardContentType = loadOrCreateNodeType('wizard');
+  $wizardStepContentType = loadOrCreateNodeType('wizard_step');
+
+
+  // Then, add required fields. These fields should already exist in the CMS.
+  // If they don't, create them first, then add them.
+  $fieldsToAdd = [
+    'field_page_intro',
+    'field_hide_page_intro',
+    'field_meta_description',
+    'field_short_description',
+    'field_page_type',
+    'field_language_toggle',
+    'body',
+    'field_header_html',
+    'field_css_icon',
+    'field_footer_html',
+    'field_for_contact_center_only',
+    'field_faq_page',
+    'field_custom_twig_content',
+    'field_exclude_from_contact_cente',
+    'field_wizard_step'
+  ];
+  // Title                          (title) - default drupal field
+  // Revision log message           Not a field - default drupal input
+  // Menu settings                  Not a field - default drupal group
+  // Simple XML Sitemap             Not a field - default drupal input
+  // URL Redirects                  Not a field - default drupal input
+  // URL alias                      Not a field - default drupal input
+  // Provide menu link              Not a field - default drupal input
+  // Menu link title                Not a field - default drupal input
+  // Authoring information          Not a field - default drupal input
+  // Promotion options              Not a field - default drupal input
+  // Nothing to do for the above fields. They should all exist by default in any
+  // node type in Drupal.
+  // Page Intro                     (field_page_intro)
+  // Hide Page Intro                (field_hide_page_intro)
+  // Meta Description               (field_meta_description)
+  // Short Description              (field_short_description)
+  // Page Type                      (field_page_type)
+  // Language                       () TODO
+  // Language Toggle                (field_language_toggle)
+  // Body                           (body)
+  // Text Format                    Not a field - this is related to body
+  // Header HTML                    (field_header_html)
+  // CSS Icon                       (field_css_icon)
+  // Footer HTML (field)            (field_footer_html)
+  // For contact center use only    (field_for_contact_center_only)
+  // FAQ                            (field_faq_page)
+  // Custom Twig Content            (field_custom_twig_content)
+  // Exclude from contact center    (field_exclude_from_contact_cente)
+  // Wizard Step                    (field_wizard_step)
+  // Change [publishing state] to   () TODO
+  // Description                    () TODO
+  // Parent Item                    () TODO
+  // Weight                         () TODO
+  // TODO unknown fields (not already in CMS?)
+  $fieldConfigs = [];
+  foreach ( $fieldsToAdd as $fieldBundle ) {
+    $fieldConfigs[$fieldBundle] = loadOrCreateFieldConfig($fieldBundle);
+  }
+}
+
 function usagov_wizards_theme($existing, $type, $theme, $path) {
     return [
         'usagov_wizards_wizard' => [
