@@ -49,15 +49,16 @@ function loadOrCreateFieldConfig( string $fieldName, string $nodeTypeBundle, str
       }
       if ( empty($fileContents) ) {
         // Failed to load or no filepath provided
-        $fileContents = file_get_contents("config_files/field_config/field.field.$nodeTypeBundle.$fieldName.yml");
+        $fileContents = file_get_contents(getConfigFilePath() . "/field_config/field.field.node.$nodeTypeBundle.$fieldName.yml");
       }
 
       if ( !empty($fileContents) ) {
         try {
           // Attempt to create the field storage config with loaded data, and return it if successful.
           $fieldConfigData = \Drupal\Component\Serialization\Yaml::decode($fileContents);
+          $fieldConfigData['bundle'] = $nodeTypeBundle;
           // TODO
-          $fieldConfig = FieldConfig::create(array_intersect_key($contentTypeData, array_flip($nodeTypeKeys)));
+          $fieldConfig = FieldConfig::create(array_intersect_key($fieldConfigData, array_flip($fieldConfigKeys)));
           $saveSuccessful = $fieldConfig->save();
 
           if ( $saveSuccessful ) {
@@ -91,7 +92,7 @@ function loadOrCreateFieldConfig( string $fieldName, string $nodeTypeBundle, str
  * @return FieldStorageConfig|null
  *   The FieldStorageConfig for that field name. null if unable to load or create.
  */
-function loadOrCreateFieldStorageConfig( string $fieldName, string|null $filePath) : FieldStorageConfig|null {
+function loadOrCreateFieldStorageConfig( string $fieldName, string|null $filePath = null ) : FieldStorageConfig|null {
   $fieldStorageConfig = FieldStorageConfig::loadByName('node', $fieldName);
 
   if ( empty($fieldStorageConfig) ) {
@@ -117,14 +118,14 @@ function loadOrCreateFieldStorageConfig( string $fieldName, string|null $filePat
     }
     if ( empty($fileContents) ) {
       // Failed to load or no filepath provided
-      $fileContents = file_get_contents("config_files/field_storage_config/$fieldName.yml");
+      $fileContents = file_get_contents(getConfigFilePath() . "/field_storage_config/$fieldName.yml");
     }
 
     if ( !empty($fileContents) ) {
       try {
         // Attempt to create the field storage config with loaded data, and return it if successful.
         $fieldStorageData = \Drupal\Component\Serialization\Yaml::decode($fileContents);
-        $fieldStorageConfig = FieldStorageConfig::create(array_intersect_key($contentTypeData, array_flip($nodeTypeKeys)));
+        $fieldStorageConfig = FieldStorageConfig::create(array_intersect_key($fieldStorageData, array_flip($fieldStorageKeys)));
         $saveSuccessful = $fieldStorageConfig->save();
 
         if ( $saveSuccessful ) {
@@ -175,7 +176,7 @@ function loadOrCreateNodeType( string $bundle, string|null $filePath = null ) : 
     }
     if ( empty($fileContents) ) {
       // Failed to load or no filepath provided
-      $fileContents = file_get_contents("config_files/node_type/$bundle.yml");
+      $fileContents = file_get_contents(getConfigFilePath() . "/node_type/$bundle.yml");
     }
     if ( !empty($fileContents) ) {
       try {
@@ -198,6 +199,10 @@ function loadOrCreateNodeType( string $bundle, string|null $filePath = null ) : 
   }
 
   return $contentType;
+}
+
+function getConfigFilePath() {
+  return \Drupal::service('extension.list.module')->getPath('usagov_wizards') . '/config_files';
 }
 
 /**
@@ -234,10 +239,16 @@ function prepareContentTypesAndFields() {
     'wizard' => [],
     'wizard_step' => []
   ];
+
+  // First create node types, because they can be referenced
+  // by content reference fields.
   foreach ( $nodeTypes as $nodeType ) {
     // Creates the node (content) type if it doesn't exist.
     loadOrCreateNodeType($nodeType);
-
+  }
+  
+  // Next, create and add fields to them as needed.
+  foreach ( $nodeTypes as $nodeType ) {
     // #shared is an array containing machine names of all fields
     // shared by all content types created here (i.e. wizard and wizard_step)
     foreach ( $fieldsToAdd['#shared'] as $fieldToAdd ) {

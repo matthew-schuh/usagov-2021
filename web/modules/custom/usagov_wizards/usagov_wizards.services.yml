@@ -1,8 +1,4 @@
 services:
-  usagov_wizards.request_subscriber:
-    class: Drupal\usagov_wizards\EventSubscriber\RequestSubscriber
-    tags:
-      - { name: event_subscriber }
   usagov_wizards.commands:
     class: Drupal\usagov_wizards\Drush\Commands\WizardsCommands
     tags:
