@@ -38,3 +38,44 @@ usagov_wizards.wizard_tree.update.v1:
     _custom_access: '\Drupal\usagov_wizards\Controller\WizardTreeApi::updateWizardTreeAccess'
   options:
     no_cache: 'TRUE'
+
+usagov_wizards.wizard_tree.get.v1:
+  path: '/wizards/api/v1/wizard-tree/get'
+  defaults:
+    _title: 'Get Wizard Tree'
+    _controller: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTree'
+  requirements:
+    _custom_access: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTreeAccess'
+  options:
+    no_cache: 'TRUE'
+
+usagov_wizards.wizard_tree.get_id.v1:
+  path: '/wizards/api/v1/wizard-tree/get/{rootId}'
+  defaults:
+    _title: 'Get Wizard Tree'
+    _controller: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTree'
+  requirements:
+    _custom_access: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTreeAccess'
+  options:
+    no_cache: 'TRUE'
+
+# usagov_wizards.wizard_tree.get_flattened.v1:
+#   path: '/wizards/api/v1/wizard-tree/get-flattened'
+#   defaults:
+#     _title: 'Get Flattened Wizard Tree'
+#     _controller: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTreeFlattened'
+#   requirements:
+#     _custom_access: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTreeAccess'
+#   options:
+#     no_cache: 'TRUE'
+
+usagov_wizards.wizard_tree.get_flattened_id.v1:
+  path: '/wizards/api/v1/wizard-tree/get-flattened/{rootId}'
+  defaults:
+    _title: 'Get Flattened Wizard Tree'
+    _controller: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTreeFlattened'
+    rootId: NULL
+  requirements:
+    _custom_access: '\Drupal\usagov_wizards\Controller\WizardTreeApi::getWizardTreeAccess'
+  options:
+    no_cache: 'TRUE'

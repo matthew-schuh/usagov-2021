@@ -7,39 +7,6 @@ use Drupal\node\Entity\Node;
 class WizardsService {
 
   /**
-   * A list of all allowed SSML tags, excluding <speak>.
-   * <speak> tag is handled separately.
-   * 
-   * @var string
-   */
-  const ALLOWED_SSML_TAGS = '<amazon:domain><amazon:effect><amazon:emotion><audio><break><emphasis><lang><p><phoneme><prosody><s><say-as><sub><voice><w>';
-
-  /**
-   * Santizes provided text of all tags except supported SSML tags.
-   * Optionally wraps text in <speak> tags. Note that because speak tags
-   * can break SSML if not placed around the entire text, and if there is more
-   * than one, it is stripped from the text.
-   * 
-   * @param string $text
-   *   The text to be sanitized
-   * @param bool $addSpeakTag
-   *   Whether the <speak> tag should be wrapped around the returned text.
-   * 
-   * @return string
-   *   The sanitized SSML text.
-   */
-  public function sanitizeSSMLText( string $text, bool $addSpeakTag = false ) : string {
-    $text ??= '';
-    $text = strip_tags(html_entity_decode($text), static::ALLOWED_SSML_TAGS);
-
-    if ( $addSpeakTag ) {
-      $text = '<speak>' . $text . '</speak>';
-    }
-
-    return $text;
-  }
-
-  /**
    * Constructs an array containing wizard tree data with nested children.
    * Builds the entire wizard tree.
    * 
@@ -201,7 +168,8 @@ class WizardsService {
     return [
       'entities' => $wizardTree,
       'ids' => $ids,
-      'rootStepId' => $wizard?->id()
+      'rootStepId' => $wizard?->id(),
+      'availableLanguages' => $this->getAvailableLanguages()
     ];
   }
 
@@ -235,7 +203,7 @@ class WizardsService {
 
     foreach ($children as $child) {
       $childId = $child->id();
-      if ( !in_array($visited, $childId) ) {
+      if ( !in_array($childId, $visited) ) {
         $childStep = $this->buildWizardStep( $child, $keyedChildren, $visited );
         if ( $keyedChildren ) {
           $treeNode['children'][$childId] = $childStep;
@@ -263,14 +231,46 @@ class WizardsService {
   function buildWizardDataFromStep( Node $wizardStep, bool $includeChildIds = false ) : array {
     $stepData = [];
 
+    // Page Intro                     (field_page_intro)
+    // Hide Page Intro                (field_hide_page_intro)
+    // Meta Description               (field_meta_description)
+    // Short Description              (field_short_description)
+    // Page Type                      (field_page_type)
+    // Language                       () TODO
+    // Language Toggle                (field_language_toggle)
+    // Body                           (body)
+    // Text Format                    Not a field - this is related to body
+    // Header HTML                    (field_header_html)
+    // CSS Icon                       (field_css_icon)
+    // Footer HTML (field)            (field_footer_html)
+    // For contact center use only    (field_for_contact_center_only)
+    // FAQ                            (field_faq_page)
+    // Custom Twig Content            (field_custom_twig_content)
+    // Exclude from contact center    (field_exclude_from_contact_cente)
+    // Wizard Step                    (field_wizard_step)
+
     if ( $wizardStep ) {
+      // TODO strip tags from text fields
+      // TODO separate functions for getting wizard and wizard step field values - they have different fields available.
       $stepData = [
         'name' => preg_replace('/[ -]/', '_', strtolower($wizardStep->getTitle() ?? 'wizard_step_' . $wizardStep->id())),
         'title' => $wizardStep->getTitle() ?? '',
         'id' => $wizardStep->id() ?? '',
-        'body' => strip_tags(html_entity_decode($this->getFieldValue($wizardStep, 'body')), static::ALLOWED_SSML_TAGS),
-        'primaryUtterance' => $this->getFieldValue($wizardStep, 'field_wizard_primary_utterance'),
-        'aliases' => $this->getFieldValue($wizardStep, 'field_wizard_aliases'),
+        'pageIntro' => $this->getFieldValue($wizardStep, 'field_page_intro'),
+        'hidePageIntro' => $this->getFieldValue($wizardStep, 'field_hide_page_intro'),
+        'metaDescription' => $this->getFieldValue($wizardStep, 'field_meta_description'),
+        'shortDescription' => $this->getFieldValue($wizardStep, 'field_short_description'),
+        'pageType' => $this->getFieldValue($wizardStep, 'field_page_type'),
+        'languageToggle' => $this->getFieldValue($wizardStep, 'field_language_toggle'),
+        'language' => $wizardStep->language()->getName(),
+        'body' => $this->getFieldValue($wizardStep, 'body'),
+        'headerHTML' => $this->getFieldValue($wizardStep, 'field_header_html'),
+        'cssIcon' => $this->getFieldValue($wizardStep, 'field_css_icon'),
+        'footerHTML' => $this->getFieldValue($wizardStep, 'field_footer_html'),
+        'forContactCenterUseOnly' => $this->getFieldValue($wizardStep, 'field_for_contact_center_use_only'),
+        'faq' => $this->getFieldValue($wizardStep, 'field_faq_page'),
+        'customTwigContent' => $this->getFieldValue($wizardStep, 'field_custom_twig_content'),
+        'excludeFromContactCenter' => $this->getFieldValue($wizardStep, 'field_exclude_from_contact_cente'),
         'children' => []
       ];
 
@@ -644,7 +644,7 @@ class WizardsService {
    *   The field's value if it exists, otherwise an empty string.
    */
   private function getFieldValue( Node $obj, string $fieldName ) : mixed {
-    return $obj?->get($fieldName)?->value ?? '';
+    return $obj->hasField($fieldName) ? ($obj->get($fieldName)?->value ?? '') : '';
   }
 
   /**
@@ -665,6 +665,17 @@ class WizardsService {
     }
 
     return false;
+  }
+
+  private function getAvailableLanguages() {
+    $availableLanguages = array_map(function($el) {
+      return [
+        'name' => $el->getName(),
+        'id' => $el->getId(),
+        'weight' => $el->getWeight(),
+      ];
+    }, \Drupal::languageManager()->getNativeLanguages());
+    return $availableLanguages;
   }
 
 }

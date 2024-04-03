@@ -320,32 +320,3 @@ function usagov_wizards_theme($existing, $type, $theme, $path) {
         ],
     ];
 }
-
-// function usagov_wizards_theme() {
-//     $routeName = \Drupal::routeMatch()->getRouteName();
-    
-//     if ( $routeName === 'usagov_wizards.wizards' ) {
-//         $theme['usagov_wizards_wizards'] = [
-//             'template' => 'page--select-wizard',
-//             'variables' => [
-//                 'hello' => 'hello world',
-//             ],
-//         ];
-//         $theme['page__select_wizard'] = [
-//             'template' => 'page--select-wizard',
-//         ];
-//     } else if ( $routeName === 'usagov_wizards.wizards.wizard' ) {
-//         $wizardId = \Drupal::routeMatch()->getParameter('wizard_id');
-//         $theme['usagov_wizards_wizard'] = [
-//             'template' => 'page--wizard',
-//             'variables' => [
-//                 'hello' => 'hello world',
-//             ],
-//         ];
-//         $theme['page__wizard'] = [
-//             'template' => 'page--wizard',
-//         ];
-//     }
-
-//     return $theme;
-// }

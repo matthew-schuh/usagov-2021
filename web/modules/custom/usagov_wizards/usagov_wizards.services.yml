@@ -4,4 +4,4 @@ services:
     tags:
       - { name: drush.command }
   usagov_wizards.wizard:
-    class: Drupal\usagov_wizards\Services\WizardService
+    class: Drupal\usagov_wizards\Services\WizardsService

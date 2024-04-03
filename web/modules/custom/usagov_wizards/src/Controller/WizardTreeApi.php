@@ -98,6 +98,37 @@ class WizardTreeApi extends ControllerBase {
     }
 
     /**
+     * Generates the nested JSON structure for the wizard tree.
+     * Optionally generate using a provided node id as the root node.
+     * 
+     * @param int|null $rootId
+     *   ID of the node to act as the root. null to generate the whole tree for all wizards.
+     * 
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     *   A simple HTTP response containing a status code and JSON data.
+     */
+    public function getWizardTree(Request $request, int|null $rootId = null) : JsonResponse {
+      $response = new JsonResponse();
+
+      if ( $request->getMethod() !== 'GET' ) {
+        $response->setStatusCode(Response::HTTP_METHOD_NOT_ALLOWED);
+        $response->setContent('{"error": "Method Not Allowed"}');
+        return $response;
+      }
+
+      if ( $rootId !== null ) {
+        $tree = \Drupal::service('usagov_wizards.wizard')->buildWizardTreeFromNodeId( $rootId );
+      } else {
+        $tree = \Drupal::service('usagov_wizards.wizard')->buildWizardTree();
+      }
+      // TODO parse status
+
+      $response->setStatusCode(Response::HTTP_OK);
+      $response->setContent(json_encode($tree));
+      return $response;
+    }
+
+    /**
      * Generates the flattened JSON structure for the wizard tree.
      * Optionally generate using a provided node id as the root node.
      *
@@ -107,7 +138,7 @@ class WizardTreeApi extends ControllerBase {
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      *   A simple HTTP response containing a status code and JSON data.
      */
-    public function getFlattenedWizardTree(Request $request, int|null $rootId) : JsonResponse {
+    public function getWizardTreeFlattened(Request $request, int|null $rootId = null) : JsonResponse {
       $response = new JsonResponse();
 
       if ( $request->getMethod() !== 'GET' ) {
