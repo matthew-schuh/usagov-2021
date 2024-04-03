@@ -253,6 +253,7 @@ class WizardsService {
       // TODO strip tags from text fields
       // TODO separate functions for getting wizard and wizard step field values - they have different fields available.
       $stepData = [
+        'nodeType' => $wizardStep->bundle(),
         'name' => preg_replace('/[ -]/', '_', strtolower($wizardStep->getTitle() ?? 'wizard_step_' . $wizardStep->id())),
         'title' => $wizardStep->getTitle() ?? '',
         'id' => $wizardStep->id() ?? '',
